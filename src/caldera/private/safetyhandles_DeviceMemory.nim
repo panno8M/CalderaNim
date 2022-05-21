@@ -16,4 +16,19 @@ template create*(parent: Weak[Device]; handle: var Uniq[DeviceMemory]; allocateI
 
 func device*(handle: Weak[DeviceMemory]): Weak[Device] = handle.getParentAs typeof result
 template parent*(handle: Weak[DeviceMemory]): Weak[Device] = handle.device
+
+proc mapMemory*(memory: Weak[DeviceMemory];
+      offset: DeviceSize;
+      size: DeviceSize;
+      flags = default(MemoryMapFlags);
+      ppData: ptr pointer;
+    ): Result =
+  mapMemory(memory.device[], memory[], offset, size, flags, ppData)
+template map*(memory: Weak[DeviceMemory]; offset: DeviceSize; size: DeviceSize; flags = default(MemoryMapFlags); ppData: ptr pointer;): Result =
+  mapMemory(memory, offset, size, flags, ppData)
+
+proc unmapMemory*(memory: Weak[DeviceMemory]) =
+  unmapMemory(memory.device[], memory[])
+template unmap*(memory: Weak[DeviceMemory]) =
+  unmapMemory(memory)
 {.pop.} # discardable, inline
