@@ -16,4 +16,11 @@ template create*(parent: Weak[Device]; handle: var Uniq[Buffer]; createInfo: Buf
 
 func device*(handle: Weak[Buffer]): Weak[Device] = handle.getParentAs typeof result
 template parent*(handle: Weak[Buffer]): Weak[Device] = handle.device
+
+proc getBufferMemoryRequirements*(buffer: Weak[Buffer];
+      memoryRequirements: var MemoryRequirements;
+    ) =
+  getBufferMemoryRequirements(buffer.device[], buffer[], addr memoryRequirements)
+template get*(buffer: Weak[Buffer]; memoryRequirements: var MemoryRequirements) =
+  getBufferMemoryRequirements(buffer, memoryRequirements)
 {.pop.} # discardable, inline
