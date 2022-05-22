@@ -52,7 +52,9 @@ template impl_create[T](handle: var Uniq[T]; body): untyped {.used.} =
   handle.mrPac.mIsAlive = true
   when TraceHook:
     hookLogger.log lvlInfo, &": (manu) CREATE #{idof(handle.mrPac[]):03} : {$HandleType}"
-  body
+  var res = body
+  if pac.mIsAlive: destroy pac
+  res
 template impl_create[S,T](parent: Weak[S]; handle: var Uniq[T]; body): untyped {.used.} =
   template HandleType: untyped = typeof(handle).HandleType
   var pac: Pac[HandleType]
@@ -64,7 +66,9 @@ template impl_create[S,T](parent: Weak[S]; handle: var Uniq[T]; body): untyped {
   handle.mrPac.mIsAlive = true
   when TraceHook:
     hookLogger.log lvlInfo, &": (manu) CREATE #{idof(handle.mrPac[]):03} : {$HandleType}"
-  body
+  var res = body
+  if pac.mIsAlive: destroy pac
+  res
 
 {.push, used, inline.}
 proc castPacParent[T,S](handle: Pac[T]; Type: typedesc[S]): Pac[S] =
