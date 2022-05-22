@@ -13,16 +13,16 @@ type
     sType* {.constant: (StructureType.commandBufferAllocateInfo).}: StructureType
     pNext* {.optional.}: pointer
 
-proc destroy*[QF,LV](handle: var Heap[ClCommandBuffer[QF,LV]]) = impl_destroy(handle):
+proc destroy*[QF,LV](handle: var Pac[ClCommandBuffer[QF,LV]]) = impl_destroy(handle):
   template device: Device = handle
-    .castHeapParent(ClCommandPool[QF])
-    .castHeapParent(QueueFamily[QF])
+    .castPacParent(ClCommandPool[QF])
+    .castPacParent(QueueFamily[QF])
     .castParent(Device)
   freeCommandBuffers device, handle.castParent(CommandPool), 1, cast[ptr CommandBuffer](unsafeAddr handle.mHandle)
-proc destroy*[QF,LV](handle: var Heap[seq[ClCommandBuffer[QF,LV]]]) = impl_destroy(handle):
+proc destroy*[QF,LV](handle: var Pac[seq[ClCommandBuffer[QF,LV]]]) = impl_destroy(handle):
   template device: Device = handle
-    .castHeapParent(ClCommandPool[QF])
-    .castHeapParent(QueueFamily[QF])
+    .castPacParent(ClCommandPool[QF])
+    .castPacParent(QueueFamily[QF])
     .castParent(Device)
   freeCommandBuffers device, handle.castParent(CommandPool), handle.mHandle.len.uint32, cast[ptr CommandBuffer](unsafeAddr handle.mHandle[0])
 func commandPool*[QF,LV](handle: Weak[ClCommandBuffer[QF,LV]]): Weak[ClCommandPool[QF]] = handle.getParentAs typeof result
@@ -35,14 +35,14 @@ proc createCommandBuffer*[QF, LV](parent: Weak[ClCommandPool[QF]]; handle: var U
   CI.commandPool = parent[].CommandPool
   CI.level = LV
   CI.commandBufferCount = 1
-  parent.queueFamily.device[].allocateCommandBuffers(addr CI, cast[ptr CommandBuffer](addr handle.mrHeap.mHandle))
+  parent.queueFamily.device[].allocateCommandBuffers(addr CI, cast[ptr CommandBuffer](addr handle.mrPac.mHandle))
 proc createCommandBuffers*[QF, LV](parent: Weak[ClCommandPool[QF]]; handle: var Uniq[seq[ClCommandBuffer[QF, LV]]]; createInfo: ClCommandBufferCreateInfo): Result = parent.impl_create(handle):
   var CI: CommandBufferAllocateInfo
   copyMem addr CI, unsafeAddr createInfo, sizeof ClCommandBufferCreateInfo
   CI.commandPool = parent[].CommandPool
   CI.level = LV
-  CI.commandBufferCount = handle.mrHeap.mHandle.len.uint32
-  parent.queueFamily.device[].allocateCommandBuffers(addr CI, cast[ptr CommandBuffer](addr handle.mrHeap.mHandle[0]))
+  CI.commandBufferCount = handle.mrPac.mHandle.len.uint32
+  parent.queueFamily.device[].allocateCommandBuffers(addr CI, cast[ptr CommandBuffer](addr handle.mrPac.mHandle[0]))
 template create*[QF,LV](parent: Weak[ClCommandPool[QF]]; handle: var Uniq[ClCommandBuffer[QF,LV]]; createInfo: ClCommandBufferCreateInfo): Result =
   createCommandBuffer(parent, handle, createInfo)
 template create*[QF,LV](parent: Weak[ClCommandPool[QF]]; handle: var Uniq[seq[ClCommandBuffer[QF,LV]]]; createInfo: ClCommandBufferCreateInfo): Result =
