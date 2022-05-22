@@ -15,14 +15,14 @@ type
 
 proc destroy*[QF,LV](handle: var Pac[ClCommandBuffer[QF,LV]]) = impl_destroy(handle):
   template device: Device = handle
-    .castPacParent(ClCommandPool[QF])
-    .castPacParent(QueueFamily[QF])
+    .castParentPac(ClCommandPool[QF])
+    .castParentPac(QueueFamily[QF])
     .castParent(Device)
   freeCommandBuffers device, handle.castParent(CommandPool), 1, cast[ptr CommandBuffer](unsafeAddr handle.mHandle)
 proc destroy*[QF,LV](handle: var Pac[seq[ClCommandBuffer[QF,LV]]]) = impl_destroy(handle):
   template device: Device = handle
-    .castPacParent(ClCommandPool[QF])
-    .castPacParent(QueueFamily[QF])
+    .castParentPac(ClCommandPool[QF])
+    .castParentPac(QueueFamily[QF])
     .castParent(Device)
   freeCommandBuffers device, handle.castParent(CommandPool), handle.mHandle.len.uint32, cast[ptr CommandBuffer](unsafeAddr handle.mHandle[0])
 func commandPool*[QF,LV](handle: Weak[ClCommandBuffer[QF,LV]]): Weak[ClCommandPool[QF]] = handle.getParentAs typeof result

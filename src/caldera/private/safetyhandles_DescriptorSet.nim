@@ -8,11 +8,11 @@ privateAccess Pac
 
 {.push discardable, inline.}
 proc destroy*(handle: var Pac[DescriptorSet]) = impl_destroy(handle):
-  template device: Device = handle.castPacParent(DescriptorPool).castParent(Device)
+  template device: Device = handle.castParentPac(DescriptorPool).castParent(Device)
   template descriptorPool: DescriptorPool = handle.castParent(DescriptorPool)
   discard freeDescriptorSets(device, descriptorPool, 1, unsafeAddr handle.mHandle)
 proc destroy*[I](handle: var Pac[array[I,DescriptorSet]]) = impl_destroy(handle):
-  template device: Device = handle.castPacParent(DescriptorPool).castParent(Device)
+  template device: Device = handle.castParentPac(DescriptorPool).castParent(Device)
   template descriptorPool: DescriptorPool = handle.castParent(DescriptorPool)
   discard freeDescriptorSets(device, descriptorPool, handle.mHandle.len.uint32, unsafeAddr handle.mHandle[0])
 

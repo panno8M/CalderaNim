@@ -23,7 +23,7 @@ func device*[QF](handle: Weak[QueueFamily[QF]]): Weak[Device] = handle.getParent
 template parent*[QF](handle: Weak[QueueFamily[QF]]): Weak[Device] = handle.device
 
 proc destroy*[QF](handle: var Pac[ClCommandPool[QF]]) = impl_destroy(handle):
-  destroyCommandPool handle.castPacParent(QueueFamily[QF]).castParent(Device), handle.mHandle.CommandPool
+  destroyCommandPool handle.castParentPac(QueueFamily[QF]).castParent(Device), handle.mHandle.CommandPool
 func queueFamily*[QF](handle: Weak[ClCommandPool[QF]]): Weak[QueueFamily[QF]] = handle.getParentAs typeof result
 template parent*[QF](handle: Weak[ClCommandPool[QF]]): Weak[QueueFamily[QF]] = handle.queueFamily
 
