@@ -5,7 +5,16 @@ import std/logging
 import vulkan
 
 const TraceHook = defined traceHook
+const UseException = true
+# defined safetyHandlesUseException
 type HandleNotAliveDefect* = object of NilAccessDefect
+
+proc issueException*() =
+  template msg: string = "This handle has no reference to anywhere. Use unsafeaddr if Nil is acceptable."
+  when UseException:
+    raise newException(HandleNotAliveDefect, msg)
+  else:
+    quit(msg)
 
 type
   Heap*[HandleType] = object
@@ -72,26 +81,20 @@ proc setLen*[T](handle: var Uniq[seq[T]]; newSize: int) =
     handle.mrHeap = new Heap[seq[T]]
   handle.mrHeap.mHandle.setLen(newSize)
 
-func isAlive*[T](handle: Weak[T]): bool =
+proc isAlive*[T](handle: Weak[T]): bool =
   handle.mrHeap != nil and handle.mrHeap.mIsAlive
-func isAlive*[T](handle: Uniq[T]): bool =
+proc isAlive*[T](handle: Uniq[T]): bool =
   handle.mrHeap != nil and handle.mrHeap.mIsAlive
 
-func rawhandle*[T](handle: Weak[T]): lent T =
-  if not handle.isAlive:
-    raise newException(HandleNotAliveDefect, "This handle has no reference to anywhere. Use unsafeaddr if Nil is acceptable.")
+template impl_rawhandle =
+  if not handle.isAlive: issueException()
   handle.mrHeap.mHandle
-func rawhandle*[T](handle: Uniq[T]): lent T =
-  if not handle.isAlive:
-    raise newException(HandleNotAliveDefect, "This handle has no reference to anywhere. Use unsafeaddr if Nil is acceptable.")
-  handle.mrHeap.mHandle
-func rawhandle*[T](handle: var Uniq[T]): var T =
-  if not handle.isAlive:
-    raise newException(HandleNotAliveDefect, "This handle has no reference to anywhere. Use unsafeaddr if Nil is acceptable.")
-  handle.mrHeap.mHandle
+proc rawhandle*[T](handle: Weak[T]): lent T = impl_rawhandle
+proc rawhandle*[T](handle: Uniq[T]): lent T = impl_rawhandle
+proc rawhandle*[T](handle: var Uniq[T]): var T = impl_rawhandle
 
-func `[]`*[T](handle: Weak[T]): lent T {.inline.} = handle.rawhandle
-func `[]`*[T](handle: Uniq[T]): lent T {.inline.} = handle.rawhandle
+proc `[]`*[T](handle: Weak[T]): lent T {.inline.} = handle.rawhandle
+proc `[]`*[T](handle: Uniq[T]): lent T {.inline.} = handle.rawhandle
 
 template `[]`*[T](handle: Weak[seq[T]], i: int): lent T = handle[][i]
 template `[]`*[T](handle: Uniq[seq[T]], i: int): lent T = handle[][i]
@@ -100,13 +103,10 @@ template `[]`*[I,T](handle: Uniq[array[I,T]], i: int): lent T = handle[][i]
 
 proc head*[T](handle: Weak[T]): ptr T = unsafeAddr handle[]
 proc head*[T](handle: Weak[seq[T]]): ptr T = unsafeAddr handle[][0]
-proc head*[I,T](handle: Weak[array[I,T]]): ptr T = unsafeAddr handle[][0]
 
 proc getParentAs[T, S](handle: Weak[T]; Type: typedesc[Weak[S]]): Weak[S] {.inline, used.} =
-  if handle.isAlive:
-    cast[Weak[S]](handle.mrHeap.mpParent)
-  else:
-    raise newException(HandleNotAliveDefect, "This handle has no reference to anywhere. It is possible that the reference has already been destroyed.")
+  if not handle.isAlive: issueException()
+  cast[Weak[S]](handle.mrHeap.mpParent)
 
 template destroy[T](handle: var Heap[T]) = destroy handle
 proc `=destroy`[T](handle: var Uniq[T]) =
@@ -122,5 +122,5 @@ proc destroy*[T](handle: var Uniq[T]) =
 
 converter weak*[T](handle: Uniq[T]): lent Weak[T] =
   cast[ptr Weak[T]](unsafeAddr handle)[]
-converter weak*[T](handle: var Uniq[T]): var Weak[T] =
+converter weak*[T](handle: var Uniq[T]): lent Weak[T] =
   cast[ptr Weak[T]](addr handle)[]
