@@ -55,6 +55,9 @@ when TraceHook:
     else:
       "\e[31m" & repr(res) & "\e[0m" # Yellow
 
+template `?destroy`[T](handle: var Pac[T]) = destroy handle
+macro destroy[T](handle: var Pac[T]) =
+  error "Destroy(" & repr(handle.getTypeInst) & ") is not defined (before Create proc)", handle
 
 template impl_create[T](handle: var Uniq[T]; body): untyped {.used.} =
   template HandleType: untyped = typeof(handle).HandleType
@@ -67,7 +70,7 @@ template impl_create[T](handle: var Uniq[T]; body): untyped {.used.} =
   var res = body
   when TraceHook:
     hookLogger.log lvlInfo, &": (manu) CREATE #{idof(handle.mrPac[]):03} [" & $res & &"] : {$HandleType}"
-  if pac.mIsAlive: destroy pac
+  if pac.mIsAlive: `?destroy` pac
   res
 template impl_create[S,T](parent: Weak[S]; handle: var Uniq[T]; body): untyped {.used.} =
   template HandleType: untyped = typeof(handle).HandleType
@@ -81,7 +84,7 @@ template impl_create[S,T](parent: Weak[S]; handle: var Uniq[T]; body): untyped {
   var res = body
   when TraceHook:
     hookLogger.log lvlInfo, &": (manu) CREATE #{idof(handle.mrPac[]):03} [" & $res & &"] : {$HandleType}"
-  if pac.mIsAlive: destroy pac
+  if pac.mIsAlive: `?destroy` pac
   res
 template impl_destroy[T](handle: Pac[T]; body): untyped =
   body
@@ -106,17 +109,16 @@ proc getParentAs[T, S](handle: Weak[T]; Type: typedesc[Weak[S]]): Weak[S] {.inli
   if not handle.isAlive: issueException()
   cast[Weak[S]](handle.mrPac.mpParent)
 
-template destroy[T](handle: var Pac[T]) = destroy handle
 proc `=destroy`[T](handle: var Uniq[T]) =
   if handle.isAlive:
     when TraceHook:
       hookLogger.log lvlInfo, &": (auto) DESTROY #{idof(handle.mrPac[]):03} : {$T}"
-    destroy handle.mrPac[]
+    `?destroy` handle.mrPac[]
 proc destroy*[T](handle: var Uniq[T]) =
   if handle.isAlive:
     when TraceHook:
       hookLogger.log lvlInfo, &": (manu) DESTROY #{idof(handle.mrPac[]):03} : {$T}"
-    destroy handle.mrPac[]
+    `?destroy` handle.mrPac[]
 
 converter weak*[T](handle: Uniq[T]): lent Weak[T] =
   cast[ptr Weak[T]](unsafeAddr handle)[]
