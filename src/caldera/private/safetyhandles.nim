@@ -44,6 +44,18 @@ when TraceHook:
       hookIdLookup[memaddr handle]
   var hookLogger* = newConsoleLogger()
 
+  proc `$`(res: Result): string =
+    if hookLogger isnot ConsoleLogger:
+      return repr res
+
+    if likely(res.ord == 0):
+      "\e[32m" & repr(res) & "\e[0m" # Green
+    elif res.ord < 0:
+      "\e[33m" & repr(res) & "\e[0m" # Red
+    else:
+      "\e[31m" & repr(res) & "\e[0m" # Yellow
+
+
 template impl_create[T](handle: var Uniq[T]; body): untyped {.used.} =
   template HandleType: untyped = typeof(handle).HandleType
   var pac: Pac[HandleType]
@@ -52,9 +64,9 @@ template impl_create[T](handle: var Uniq[T]; body): untyped {.used.} =
   elif handle.mrPac.mIsAlive:
     pac = handle.mrPac[]
   handle.mrPac.mIsAlive = true
-  when TraceHook:
-    hookLogger.log lvlInfo, &": (manu) CREATE #{idof(handle.mrPac[]):03} : {$HandleType}"
   var res = body
+  when TraceHook:
+    hookLogger.log lvlInfo, &": (manu) CREATE #{idof(handle.mrPac[]):03} [" & $res & &"] : {$HandleType}"
   if pac.mIsAlive: destroy pac
   res
 template impl_create[S,T](parent: Weak[S]; handle: var Uniq[T]; body): untyped {.used.} =
@@ -66,9 +78,9 @@ template impl_create[S,T](parent: Weak[S]; handle: var Uniq[T]; body): untyped {
     pac = handle.mrPac[]
   handle.mrPac.mpParent = cast[pointer](parent.mrPac)
   handle.mrPac.mIsAlive = true
-  when TraceHook:
-    hookLogger.log lvlInfo, &": (manu) CREATE #{idof(handle.mrPac[]):03} : {$HandleType}"
   var res = body
+  when TraceHook:
+    hookLogger.log lvlInfo, &": (manu) CREATE #{idof(handle.mrPac[]):03} [" & $res & &"] : {$HandleType}"
   if pac.mIsAlive: destroy pac
   res
 template impl_destroy[T](handle: Pac[T]; body): untyped =
