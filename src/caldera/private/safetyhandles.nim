@@ -148,5 +148,5 @@ proc `[]`*[T](handle: var Pac[T]): var T = handle.handle
 template `[]`*[T](handle: Pac[seq[T]], i: int): lent T = handle[][i]
 template `[]`*[I,T](handle: Pac[array[I,T]], i: int): lent T = handle[][i]
 
-proc head*[T](handle: Pac[T]): ptr T = unsafeAddr handle[]
-proc head*[T](handle: Pac[seq[T]]): ptr T = unsafeAddr handle[][0]
+proc head*[T](handle: Weak[T]): arrPtr[T] = unsafeAddr handle.pac.mHandle
+proc head*[T](handle: Weak[seq[T]]): arrPtr[T] = unsafeAddr handle.pac.mHandle[0]
