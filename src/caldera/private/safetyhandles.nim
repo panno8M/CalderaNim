@@ -1,3 +1,10 @@
+## API naming rules:
+##
+## * Remove handle name
+##   > proc getQueue(...) = getDeviceQueue(...)
+## * Provide the alias omitted object
+##   > template get(...) = getQueue(...)
+
 import std/macros
 import std/strformat
 import std/logging
