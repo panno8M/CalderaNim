@@ -4,7 +4,7 @@ import ./safetyhandles {.all.}
 privateAccess Uniq
 privateAccess Weak
 privateAccess Pac
-from vulkan/tools/glfw import glfwCreateWindowSurface, GLFWWindow
+from vkfw import glfwCreateWindowSurface, GLFWWindow
 
 {.push discardable, inline.}
 proc destroy*(handle: var Pac[SurfaceKHR]) = impl_destroy(handle):
