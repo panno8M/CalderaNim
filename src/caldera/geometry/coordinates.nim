@@ -4,9 +4,9 @@ import ../syncToken
 type
   Coords* = object
     countRef: int
-    volume: Vec3f32
-    pose: NQuatf32
-    point: Vec3f32
+    volume: array[3,float32]
+    pose: NQuat[float32]
+    point: array[3,float32]
     sync*: tuple[
       localRotation,
       localScaleRotation,
@@ -14,10 +14,10 @@ type
     cache: tuple[
       mat: tuple[
         local: tuple[
-          model: Mat4f32,
-          rot: Mat3f32 ],
+          model: Mat[4,4,float32],
+          rot: Mat[3,3,float32] ],
         global: tuple[
-          model: Mat4f32 ],
+          model: Mat[4,4,float32] ],
       ]
     ]
 
@@ -29,16 +29,16 @@ proc poseWasChanged*(coords: var Coords) =
 proc volumeWasChanged*(coords: var Coords) =
   reqSync coords.sync.localScaleRotation
 
-proc localRot*(coords: var Coords): lent Mat3f32 =
+proc localRot*(coords: var Coords): lent Mat[3,3,float32] =
   whenSync coords.sync.localRotation:
-    coords.cache.mat.local.rot = coords.pose.unwrap.mat3
+    coords.cache.mat.local.rot = coords.pose.mat3
   coords.cache.mat.local.rot
 
-proc localModel*(coords: var Coords): lent Mat4f32 =
+proc localModel*(coords: var Coords): lent Mat[4,4,float32] =
   template cache: untyped = coords.cache
   template mlm: untyped = cache.mat.local.model
   whenSync coords.sync.localTranslate:
-    mlm[3] = vec4f32(coords.point, 1)
+    mlm[3] = vec(coords.point, 1f)
   whenSync coords.sync.localScaleRotation:
     mlm[0].xyz = coords.localRot[0] * coords.volume
     mlm[1].xyz = coords.localRot[1] * coords.volume
@@ -47,40 +47,40 @@ proc localModel*(coords: var Coords): lent Mat4f32 =
 
 proc clear*(coords: var Coords) =
   zeroMem coords.addr, sizeof Coords
-  cast[ptr Quatf32](addr coords.pose)[].w = 1
-  coords.volume = vec3f32(1, 1, 1)
+  cast[ptr Quat[float32]](addr coords.pose)[].vec.w = 1
+  coords.volume = [1f].xxx
   for i in 0..2:
-    coords.cache.mat.local.rot[i, i] = 1
-    coords.cache.mat.local.model[i, i] = 1
-    coords.cache.mat.global.model[i, i] = 1
-  coords.cache.mat.local.model[3, 3] = 1
-  coords.cache.mat.global.model[3, 3] = 1
+    coords.cache.mat.local.rot[i][i] = 1
+    coords.cache.mat.local.model[i][i] = 1
+    coords.cache.mat.global.model[i][i] = 1
+  coords.cache.mat.local.model[3][3] = 1
+  coords.cache.mat.global.model[3][3] = 1
 proc newCoords*(): Coords =
   clear result
 
 let axis3* = (
-  right: nvec3f32(1, 0, 0),
-  front: nvec3f32(0, 1, 0),
-  top:   nvec3f32(0, 0, 1))
+  right: asNormalized [1f, 0, 0],
+  front: asNormalized [0f, 1, 0],
+  top:   asNormalized [0f, 0, 1])
 
-proc right*(this: var Coords): NVec3f32 = asNVec this.localrot[0]
-proc front*(this: var Coords): NVec3f32 = asNVec this.localrot[1]
-proc top  *(this: var Coords): NVec3f32 = asNVec this.localrot[2]
+proc right*(this: var Coords): Normalized[array[3,float32]] = asNormalized this.localrot[0]
+proc front*(this: var Coords): Normalized[array[3,float32]] = asNormalized this.localrot[1]
+proc top  *(this: var Coords): Normalized[array[3,float32]] = asNormalized this.localrot[2]
 
-proc point*(this: Coords): lent Vec3f32 =
+proc point*(this: Coords): lent array[3,float32] =
   this.point
-proc volume*(this: Coords): lent Vec3f32 =
+proc volume*(this: Coords): lent array[3,float32] =
   this.volume
-proc pose*(this: Coords): lent NQuatf32 =
+proc pose*(this: Coords): lent NQuat[float32] =
   this.pose
 
-proc move*(this: var Coords; delta: Vec3f32): var Coords {.discardable.} =
+proc move*(this: var Coords; delta: array[3,float32]): var Coords {.discardable.} =
   this.pointWasChanged
   this.point += delta
   this
 proc move*(this: var Coords; dx, dy, dz = default(float32)): var Coords {.discardable.} =
   this.pointWasChanged
-  this.point += vec3f32(dx, dy, dz)
+  this.point += [dx, dy, dz]
   this
 proc moveX*(this: var Coords; delta: float32): var Coords {.discardable.} =
   this.pointWasChanged
@@ -107,13 +107,13 @@ proc moveTop*(this: var Coords; delta: float32): var Coords {.discardable.} =
   this.point += this.top * delta
   this
 
-proc point*(this: var Coords; pos: Vec3f32): var Coords {.discardable.} =
+proc point*(this: var Coords; pos: array[3,float32]): var Coords {.discardable.} =
   this.pointWasChanged
   this.point = pos
   this
 proc point*(this: var Coords; x, y, z: float32): var Coords {.discardable.} =
   this.pointWasChanged
-  this.point = vec3(x, y, z)
+  this.point = [x, y, z]
   this
 proc pointX*(this: var Coords; pos: float32): var Coords {.discardable.} =
   this.pointWasChanged
@@ -128,7 +128,7 @@ proc pointZ*(this: var Coords; pos: float32): var Coords {.discardable.} =
   this.point.z = pos
   this
 
-proc rotate*(this: var Coords; axis: NVec3f32; angle: Radian32): var Coords {.discardable.} =
+proc rotate*(this: var Coords; axis: Normalized[array[3,float32]]; angle: Radian32): var Coords {.discardable.} =
   this.poseWasChanged
   this.pose = this.pose.rotate(angle, axis)
   this
@@ -161,18 +161,18 @@ proc pitch*(this: Coords): Radian32 = this.pose.pitch
 proc roll *(this: Coords): Radian32 = this.pose.roll
 proc yaw  *(this: Coords): Radian32 = this.pose.yaw
 
-proc pose*(this: var Coords; axis: NVec3f32; angle: Radian32): var Coords {.discardable.} =
+proc pose*(this: var Coords; axis: Normalized[array[3,float32]]; angle: Radian32): var Coords {.discardable.} =
   this.poseWasChanged
-  this.pose = nquat(axis, angle)
+  this.pose = NQuat[float32].rotate(angle, axis)
   this
 
-proc scale*(this: var Coords; factor: Vec3f32): var Coords {.discardable.} =
+proc scale*(this: var Coords; factor: array[3,float32]): var Coords {.discardable.} =
   this.volumeWasChanged
   this.volume *= factor
   this
 proc scale*(this: var Coords; fx, fy, fz = default(float32)): var Coords {.discardable.} =
   this.volumeWasChanged
-  this.volume *= vec3(fx, fy, fz)
+  this.volume *= [fx, fy, fz]
   this
 proc scale*(this: var Coords; factor: float32): var Coords {.discardable.} =
   this.volumeWasChanged
@@ -191,17 +191,17 @@ proc scaleZ*(this: var Coords; factor: float32): var Coords {.discardable.} =
   this.volume.z *= factor
   this
 
-proc resize*(this: var Coords; newSize: Vec3f32): var Coords {.discardable.} =
+proc resize*(this: var Coords; newSize: array[3,float32]): var Coords {.discardable.} =
   this.volumeWasChanged
   this.volume = newSize
   this
 proc resize*(this: var Coords; nx, ny, nz = default(float32)): var Coords {.discardable.} =
   this.volumeWasChanged
-  this.volume = vec3(nx, ny, nz)
+  this.volume = [nx, ny, nz]
   this
 proc resize*(this: var Coords; n: float32): var Coords {.discardable.} =
   this.volumeWasChanged
-  this.volume = vec3(n)
+  this.volume = [n].xxx
   this
 proc resizeX*(this: var Coords; factor: float32): var Coords {.discardable.} =
   this.volumeWasChanged

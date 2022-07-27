@@ -16,8 +16,8 @@ type
     syncFor: tuple[localTranslate, localRotation: SyncTokenRef[stuComponentUpdateNotice]]
     cache: tuple[
       mat: tuple[
-        view: Mat4f32,
-        proj: Mat4f32,
+        view: Mat[4,4,float32],
+        proj: Mat[4,4,float32],
       ]
     ]
 
@@ -33,12 +33,12 @@ proc coord*(lens: var Lens): var Coords =
 proc attach*(lens: var Lens; coord: var Coords) =
   lens.coord = some coord.addr
 
-proc projection*(lens: var Lens): lent Mat4f32 =
+proc projection*(lens: var Lens): lent Mat[4,4,float32] =
   whenSync lens.sync.proj:
     lens.cache.mat.proj = perspectiveRH(lens.fov, lens.aspect, lens.z.near, lens.z.far)
   lens.cache.mat.proj
 
-proc view*(lens: var Lens): lent Mat4f32 =
+proc view*(lens: var Lens): lent Mat[4,4,float32] =
   if lens.coord.isSome:
     if lens.syncFor.localRotation.needSync or lens.syncFor.localTranslate.needSync:
       let front = -lens.coord.get[].front
@@ -46,21 +46,21 @@ proc view*(lens: var Lens): lent Mat4f32 =
       let top = -lens.coord.get[].top
 
       if lens.syncFor.localRotation.needSync:
-        lens.cache.mat.view{0} = vec4(right.unwrap, 0)
-        lens.cache.mat.view{1} = vec4(top.unwrap, 0)
-        lens.cache.mat.view{2} = vec4(front.unwrap, 0)
+        lens.cache.mat.view{0} = vec(right.unwrap, 0f)
+        lens.cache.mat.view{1} = vec(top.unwrap, 0f)
+        lens.cache.mat.view{2} = vec(front.unwrap, 0f)
 
       let pos = lens.coord.get[].point
-      lens.cache.mat.view[3] = vec4(
+      lens.cache.mat.view[3] = [
         -dot(right, pos),
         -dot(top, pos),
         -dot(front, pos),
-        1)
+        1]
 
       updated lens.syncFor.localRotation
       updated lens.syncFor.localTranslate
   else:
-    lens.cache.mat.view = mat4f32(1)
+    lens.cache.mat.view = mat4[float32](1)
   lens.cache.mat.view
 
 proc newLens*(fov: Radian32; aspect: float32; z: tuple[near, far: float32]; coord: var Coords): Lens =
@@ -70,7 +70,7 @@ proc newLens*(fov: Radian32; aspect: float32; z: tuple[near, far: float32]; coor
     aspect: aspect,
     z: z,
   )
-  result.cache.mat.view = mat4f32(1)
+  result.cache.mat.view = mat4[float32](1)
   reqSync result.sync.proj
   result.syncFor.localRotation =<< coord.sync.localRotation
   result.syncFor.localTranslate =<< coord.sync.localTranslate

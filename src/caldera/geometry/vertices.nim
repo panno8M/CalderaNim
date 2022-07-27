@@ -7,8 +7,8 @@ import clsl
 
 type
   Vertex* = object
-    pos*: Vec3f32
-    color*: Vec3f32
+    pos*: array[3,float32]
+    color*: array[3,float32]
 
 proc offsetOfDotExpr(typeAccess: typed): int {.magic: "OffsetOf", noSideEffect, compileTime.}
 macro offsetOf(t: typedesc; member: static string): int =
@@ -57,7 +57,7 @@ proc bindingDesc*(T: typedesc): VertexInputBindingDescription =
 proc attributeDesc*(T: typedesc): seq[VertexInputAttributeDescription] =
   T.sign result
 
-macro HEX*(code: static string): Vec3f32 =
+macro HEX*(code: static string): array[3,float32] =
   if code.len != 6:
     error ""
   let vecarr = [

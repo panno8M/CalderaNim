@@ -17,7 +17,7 @@ proc sizeofIndices*(mesh: Mesh): DeviceSize =
 
 let Triangle* = Mesh(
   vertices: @[
-    Vertex(pos: vec3f32( 0        ,  1  , 0), color: HEX"E6E6E6"),
-    Vertex(pos: vec3f32(-sqrt 0.75, -0.5, 0), color: HEX"E6E6E6"),
-    Vertex(pos: vec3f32( sqrt 0.75, -0.5, 0), color: HEX"E6E6E6"),],
+    Vertex(pos: [ 0f        ,  1  , 0], color: HEX"E6E6E6"),
+    Vertex(pos: [-sqrt 0.75f, -0.5, 0], color: HEX"E6E6E6"),
+    Vertex(pos: [ sqrt 0.75f, -0.5, 0], color: HEX"E6E6E6"),],
   indices: @[0u32, 1, 2])
