@@ -14,13 +14,13 @@ proc createBuffer*(parent: Weak[Device]; handle: var Uniq[Buffer]; createInfo: B
   parent[].createBuffer unsafeAddr createInfo, nil, addr handle.mrPac.mHandle
 template create*(parent: Weak[Device]; handle: var Uniq[Buffer]; createInfo: BufferCreateInfo): Result = parent.createBuffer handle, createInfo
 
-func device*(handle: Weak[Buffer]): Weak[Device] = handle.getParentAs typeof result
-template parent*(handle: Weak[Buffer]): Weak[Device] = handle.device
+func device*(handle: Pac[Buffer]): Weak[Device] = cast[typeof result](handle.mpParent)
+template parent*(handle: Pac[Buffer]): Weak[Device] = handle.device
 
-proc getBufferMemoryRequirements*(buffer: Weak[Buffer];
-      memoryRequirements: var MemoryRequirements;
-    ) =
+template getBufferMemoryRequirements*(buffer: Pac[Buffer]; memoryRequirements: var MemoryRequirements) =
   getBufferMemoryRequirements(buffer.device[], buffer[], addr memoryRequirements)
-template get*(buffer: Weak[Buffer]; memoryRequirements: var MemoryRequirements) =
+template get*(buffer: Pac[Buffer]; memoryRequirements: var MemoryRequirements) =
   getBufferMemoryRequirements(buffer, memoryRequirements)
+template get*(device: Device; buffer: Buffer; memoryRequirements: var MemoryRequirements) =
+  getBufferMemoryRequirements(device, buffer, addr memoryRequirements)
 {.pop.} # discardable, inline
